@@ -1,0 +1,6 @@
+id=frida-inject-magisk
+name=Frida Inject Magisk
+version=1.0.0
+versionCode=1
+author=skrmc
+description=frida-inject + agent

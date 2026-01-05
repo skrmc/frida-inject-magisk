@@ -1,0 +1,8 @@
+To compile agent/src/index.ts into JS and package it along
+with frida-inject into a Magisk module, simply run:
+
+FRIDA_VER=17.5.2 PKG_NAME=com.example.app scripts/module.sh
+
+in the repository root directory. The content of index.ts
+is merely a placeholder; please write it according to your
+actual debugging needs.
