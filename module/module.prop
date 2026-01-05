@@ -3,4 +3,4 @@ name=Frida Inject Magisk
 version=1.0.0
 versionCode=1
 author=skrmc
-description=frida-inject + agent
+description=Click "Action" to start frida-inject process

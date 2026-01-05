@@ -7,52 +7,41 @@ TEMPLATE="$ROOT/module"
 STAGE="$ROOT/.stage/module"
 CACHE="$ROOT/.stage/cache"
 
-FRIDA_VER="${FRIDA_VER:-}"
-PKG_NAME="${PKG_NAME:-}"
+FRIDA_VERSION="${FRIDA_VERSION:-17.5.2}"
 RUNTIME="${RUNTIME:-v8}"
+PKG="${PKG:-}"
 
-[ -n "$FRIDA_VER" ] || { echo "FRIDA_VER=17.x.y PKG_NAME=com.example.app $0"; exit 1; }
-[ -n "$PKG_NAME" ] || { echo "FRIDA_VER=17.x.y PKG_NAME=com.example.app $0"; exit 1; }
+[ -n "$PKG" ] || { echo "PKG=com.example.app $0"; exit 1; }
 
-command -v frida >/dev/null
-command -v npm >/dev/null
-command -v curl >/dev/null
-command -v xz >/dev/null
-command -v zip >/dev/null
+command -v frida > /dev/null
+command -v npm > /dev/null
+command -v curl > /dev/null
+command -v xz > /dev/null
+command -v zip > /dev/null
+command -v sed > /dev/null
 
 rm -rf "$ROOT/.stage"
 mkdir -p "$STAGE" "$CACHE"
 cp -a "$TEMPLATE/." "$STAGE/"
 
 ( cd "$AGENT" && npm install && npm run build )
-[ -f "$AGENT/_.js" ] || { echo "missing agent/_.js"; exit 1; }
 cp -f "$AGENT/_.js" "$STAGE/_.js"
 
-cat > "$STAGE/action.sh" <<EOF
-#!/system/bin/sh
-MODDIR=\${0%/*}
-PIDFILE="\$MODDIR/frida-inject.pid"
-PID=\$(cat "\$PIDFILE" 2>/dev/null)
+escape() { printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'; }
+PKG_ESC="$(escape "$PKG")"
+RUN_ESC="$(escape "$RUNTIME")"
 
-if [ -n "\$PID" ] && kill -0 "\$PID" 2>/dev/null; then
-  kill "\$PID" 2>/dev/null; sleep 0.2; kill -9 "\$PID" 2>/dev/null
-  rm -f "\$PIDFILE"
-  echo "stopped"
-  exit 0
-fi
+sed -i \
+  -e "s/__PKG__/${PKG_ESC}/g" \
+  -e "s/__RUNTIME__/${RUN_ESC}/g" \
+  "$STAGE/action.sh"
 
-"\$MODDIR/frida-inject" -f "$PKG_NAME" -s "\$MODDIR/_.js" --runtime="$RUNTIME" >/dev/null 2>&1 &
-echo \$! > "\$PIDFILE"
-echo "started"
-EOF
-chmod 0755 "$STAGE/action.sh"
-
-BASE="https://github.com/frida/frida/releases/download/${FRIDA_VER}"
+BASE="https://github.com/frida/frida/releases/download/${FRIDA_VERSION}"
 
 fetch() {
   local modarch="$1"
   local assetarch="$2"
-  local name="frida-inject-${FRIDA_VER}-${assetarch}.xz"
+  local name="frida-inject-${FRIDA_VERSION}-${assetarch}.xz"
   local url="${BASE}/${name}"
   local xzpath="${CACHE}/${name}"
   local outpath="${STAGE}/bin/${modarch}/frida-inject"
@@ -67,7 +56,7 @@ fetch arm   android-arm
 fetch x64   android-x86_64
 fetch x86   android-x86
 
-ZIP="$ROOT/frida-inject-magisk-${FRIDA_VER}.zip"
+ZIP="$ROOT/frida-inject-magisk-${FRIDA_VERSION}.zip"
 rm -f "$ZIP"
 ( cd "$STAGE" && zip -qr "$ZIP" . )
 echo "$ZIP"
